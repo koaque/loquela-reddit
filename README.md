@@ -18,9 +18,9 @@ The default first run records existing releases without posting them. Enable **P
 
 The app requests one external hostname:
 
-- `api.github.com` — reads the configured repository's public release metadata and release notes. The app does not write to GitHub.
+- `api.github.com` — reads the configured repository's release metadata and release notes. The app does not write to GitHub.
 
-Reddit requires apps using HTTP Fetch to provide public Privacy Policy and Terms links. This repository includes [PRIVACY.md](PRIVACY.md) and [TERMS.md](TERMS.md); publish the repository and use the public URLs to those files in the Devvit app details.
+Reddit requires apps using HTTP Fetch to provide public Privacy Policy and Terms links. The live app uses the public [Privacy Policy](https://github.com/koaque/loquela-reddit/blob/main/PRIVACY.md) and [Terms](https://github.com/koaque/loquela-reddit/blob/main/TERMS.md) from this repository.
 
 ## Local setup
 
@@ -46,13 +46,15 @@ After installing the app in `r/Loquela`, open its installation settings and conf
 5. **Post flair text** — defaults to `Patch Notes`; create a matching post-flair template in the subreddit first.
 6. Website/download links — prefilled with Loquela's public pages and removable.
 
-For a public repository, no GitHub token is normally needed. If GitHub rate limiting becomes a problem, set the optional global `githubToken` secret with:
+For a public repository, no GitHub token is normally needed. Private repositories require the optional global `githubToken` secret:
 
 ```sh
 npx devvit settings set githubToken
 ```
 
 Use a fine-grained, read-only token with access only to the required repository.
+
+The production installation uses a non-expiring fine-grained token restricted to `koaque/loquela-android` with read-only Contents and Metadata access. The token is stored as an encrypted Devvit app secret and is never committed to this repository.
 
 ## Deploy
 
@@ -61,7 +63,21 @@ npm run upload
 npm run publish
 ```
 
-Uploading submits the requested `api.github.com` fetch domain for Reddit review. Most domain requests require review before fetch works outside development. Complete the app details in the Reddit developer portal, including the Privacy Policy and Terms URLs, then install the approved version in `r/Loquela`.
+Complete the app details in the Reddit developer portal, including the Privacy Policy and Terms URLs, then install the uploaded version in a test community or publish it for broader installation. `api.github.com` is on Devvit's global fetch allowlist, so it does not appear as a domain-exception request.
+
+## Production deployment
+
+Version `0.0.1` is installed in `r/Loquela` with these settings:
+
+- GitHub owner: `koaque`
+- GitHub repository: `loquela-android`
+- Prereleases: disabled
+- Post current release on first run: disabled
+- Title product name: `Loquela`
+- Flair text: `Patch Notes`
+- Check interval: every ten minutes
+
+The initial production check completed successfully on September 29, 2026. No GitHub Releases existed at initialization, so no Reddit post was created. The first future published release will be posted automatically.
 
 ## Duplicate prevention
 

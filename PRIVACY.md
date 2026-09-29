@@ -6,7 +6,7 @@ Loquela Reddit Patch Notes is an automated Reddit Devvit app operated by Praxis 
 
 ## Data the app processes
 
-The app reads public GitHub release metadata from the repository configured by the subreddit moderators. This includes release IDs, version tags, publication dates, release-note text, and release URLs.
+The app reads GitHub release metadata from the repository configured by the subreddit moderators. This includes release IDs, version tags, publication dates, release-note text, and release URLs. A private repository may be accessed with a fine-grained read-only GitHub token stored as an encrypted Devvit app secret.
 
 The app stores the following installation-scoped operational data in Reddit Devvit Redis:
 
@@ -14,11 +14,11 @@ The app stores the following installation-scoped operational data in Reddit Devv
 - the Reddit post ID created for a release; and
 - short-lived processing locks.
 
-The app does not collect Reddit passwords, private messages, email addresses, payment information, browsing history, or the content users type into Loquela.
+The app does not collect Reddit passwords, private messages, email addresses, payment information, browsing history, repository source code, or the content users type into Loquela.
 
 ## How data is used and shared
 
-Release information is used only to create the requested patch-note posts and prevent duplicates. Operational data is not sold, used for advertising, or shared with third parties. Public GitHub release notes are posted publicly to the subreddit where the app is installed.
+Release information is used only to create the requested patch-note posts and prevent duplicates. Operational data is not sold, used for advertising, or shared with third parties. GitHub release notes selected by the repository owner are posted publicly to the subreddit where the app is installed.
 
 ## Retention and deletion
 

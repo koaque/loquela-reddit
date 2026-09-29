@@ -39,7 +39,6 @@
       "githubToken": {
         "type": "string",
         "label": "Optional GitHub token",
-        "defaultValue": "",
         "isSecret": true
       }
     },
