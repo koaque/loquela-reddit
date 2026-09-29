@@ -63,6 +63,11 @@
         "label": "Post the current release on first run",
         "defaultValue": false
       },
+      "includeGitHubReleaseLink": {
+        "type": "boolean",
+        "label": "Include the GitHub release link",
+        "defaultValue": true
+      },
       "titleProductName": {
         "type": "string",
         "label": "Product name used in Reddit titles",

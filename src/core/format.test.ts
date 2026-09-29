@@ -8,6 +8,7 @@ const config: BotConfig = {
   githubRepository: 'loquela',
   includePrereleases: false,
   postCurrentOnFirstRun: false,
+  includeGitHubReleaseLink: true,
   titleProductName: 'Loquela',
   websiteUrl: 'https://www.getloquela.com',
   downloadUrl: 'https://www.getloquela.com/download',
@@ -39,6 +40,12 @@ describe('formatReleasePost', () => {
     expect(formatReleasePost({ ...release, body: null }, config).body).toContain(
       '_No release notes were provided._'
     );
+  });
+
+  it('can omit the private GitHub release link', () => {
+    const post = formatReleasePost(release, { ...config, includeGitHubReleaseLink: false });
+    expect(post.body).not.toContain('Full release on GitHub');
+    expect(post.body).toContain('[Download Loquela]');
   });
 
   it('keeps the body within Reddit text-post limits', () => {

@@ -28,6 +28,19 @@ async function createRedditPost(
   return created.id;
 }
 
+async function findExistingRedditPost(
+  _release: GitHubRelease,
+  post: ReleasePost
+): Promise<string | undefined> {
+  const subredditName = context.subredditName;
+  if (!subredditName) throw new Error('The Devvit installation has no subreddit context.');
+
+  const recentPosts = await reddit
+    .getNewPosts({ subredditName, limit: 100, pageSize: 100 })
+    .all();
+  return recentPosts.find((candidate) => candidate.title === post.title)?.id;
+}
+
 async function ensureFlairTemplate(config: BotConfig): Promise<string | undefined> {
   if (!config.flairText) return;
   const subredditName = context.subredditName;
@@ -96,6 +109,7 @@ export async function runReleaseCheck(): Promise<CheckResult> {
       fetchReleases: fetchGitHubReleases,
       state: new RedisReleaseState(),
       createPost: createRedditPost,
+      findExistingPost: findExistingRedditPost,
       formatPost: formatReleasePost,
       afterPost: applyFlair,
     });

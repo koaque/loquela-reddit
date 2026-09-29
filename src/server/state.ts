@@ -4,6 +4,8 @@ import { redis } from '@devvit/redis';
 
 import type { ReleaseState } from '../core/service';
 
+const RELEASE_CLAIM_TTL_MS = 15 * 60 * 1000;
+
 function prefix(repository: string): string {
   return `loquela-patch-notes:${repository}`;
 }
@@ -36,7 +38,10 @@ export class RedisReleaseState implements ReleaseState {
   async claimRelease(repository: string, releaseId: number): Promise<boolean> {
     const key = releaseKey(repository, releaseId);
     const claim = `claimed:${randomUUID()}:${new Date().toISOString()}`;
-    await redis.set(key, claim, { nx: true });
+    await redis.set(key, claim, {
+      nx: true,
+      expiration: new Date(Date.now() + RELEASE_CLAIM_TTL_MS),
+    });
     return (await redis.get(key)) === claim;
   }
 

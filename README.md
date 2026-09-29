@@ -9,6 +9,7 @@ A small Reddit Devvit app that checks GitHub Releases every ten minutes and post
 - Posts as the Devvit app account with the title `Loquela {tag} - Patch Notes`.
 - Preserves the GitHub release Markdown and adds release, download, and website links.
 - Records each release in installation-scoped Redis before posting so scheduled or manual checks do not create duplicates.
+- Reconciles exact-title matches against recent subreddit posts and lets abandoned claims expire, so transient failures can retry without normally duplicating a successful post.
 - Creates a moderator-only `Patch Notes` flair when needed and applies it to release posts.
 - Adds a moderator-only **Check Loquela releases now** subreddit menu action.
 
@@ -43,8 +44,9 @@ After installing the app in `r/Loquela`, open its installation settings and conf
 2. **GitHub repository name** — the repository containing GitHub Releases.
 3. **Post prereleases** — off by default.
 4. **Post the current release on first run** — off by default to prevent surprise posts.
-5. **Post flair text** — defaults to `Patch Notes`; the app creates a moderator-only matching template when needed.
-6. Website/download links — prefilled with Loquela's public pages and removable.
+5. **Include the GitHub release link** — disable this for private repositories.
+6. **Post flair text** — defaults to `Patch Notes`; the app creates a moderator-only matching template when needed.
+7. Website/download links — prefilled with Loquela's public pages and removable.
 
 For a public repository, no GitHub token is normally needed. Private repositories require the optional global `githubToken` secret:
 
@@ -67,17 +69,18 @@ Complete the app details in the Reddit developer portal, including the Privacy P
 
 ## Production deployment
 
-Version `0.0.2` is installed in `r/Loquela` with these settings:
+Version `0.0.4` is published as an unlisted Devvit app and installed in `r/Loquela` with these settings:
 
 - GitHub owner: `koaque`
 - GitHub repository: `loquela-android`
 - Prereleases: disabled
 - Post current release on first run: disabled
+- GitHub release link: disabled because the source repository is private
 - Title product name: `Loquela`
 - Flair text: `Patch Notes`
 - Check interval: every ten minutes
 
-The production checks completed successfully on September 29, 2026. No GitHub Releases existed at initialization, so no Reddit post was created. Version `0.0.2` also created and verified the moderator-only `Patch Notes` flair. The first future published release will be posted automatically.
+The production checks completed successfully on September 29, 2026. No GitHub Releases existed at initialization, so no Reddit post was created. Version `0.0.2` created and verified the moderator-only `Patch Notes` flair; version `0.0.4` adds expiring claims and recent-post reconciliation for retry-safe delivery. The first future published release will be posted automatically.
 
 ## Duplicate prevention
 

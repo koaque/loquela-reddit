@@ -37,6 +37,7 @@ const config: BotConfig = {
   githubRepository: 'Loquela',
   includePrereleases: false,
   postCurrentOnFirstRun: false,
+  includeGitHubReleaseLink: true,
   titleProductName: 'Loquela',
 };
 
@@ -112,6 +113,22 @@ describe('checkReleases', () => {
       )
     );
     expect(posted).toEqual([3]);
+  });
+
+  it('reconciles an existing Reddit post instead of creating a duplicate', async () => {
+    const state = new MemoryState();
+    const posted: number[] = [];
+    await checkReleases(config, dependencies(state, [], posted));
+
+    const deps = dependencies(state, [release(4)], posted);
+    const result = await checkReleases(config, {
+      ...deps,
+      findExistingPost: async () => 't3_existing',
+    });
+
+    expect(posted).toEqual([]);
+    expect(result.skipped).toBe(1);
+    expect(await state.getReleaseStatus('example/loquela', 4)).toBe('posted:t3_existing');
   });
 });
 

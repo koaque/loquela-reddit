@@ -42,6 +42,7 @@ export async function loadConfig(): Promise<BotConfig> {
     githubToken,
     includePrereleases,
     postCurrentOnFirstRun,
+    includeGitHubReleaseLink,
     titleProductName,
     flairText,
     websiteUrl,
@@ -52,6 +53,7 @@ export async function loadConfig(): Promise<BotConfig> {
     settings.get('githubToken'),
     settings.get('includePrereleases'),
     settings.get('postCurrentOnFirstRun'),
+    settings.get('includeGitHubReleaseLink'),
     settings.get('titleProductName'),
     settings.get('flairText'),
     settings.get('websiteUrl'),
@@ -66,6 +68,7 @@ export async function loadConfig(): Promise<BotConfig> {
     ),
     includePrereleases: asBoolean(includePrereleases),
     postCurrentOnFirstRun: asBoolean(postCurrentOnFirstRun),
+    includeGitHubReleaseLink: includeGitHubReleaseLink !== false,
     titleProductName: asString(titleProductName) || 'Loquela',
   };
 

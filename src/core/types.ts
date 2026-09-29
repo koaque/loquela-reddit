@@ -15,6 +15,7 @@ export interface BotConfig {
   githubToken?: string;
   includePrereleases: boolean;
   postCurrentOnFirstRun: boolean;
+  includeGitHubReleaseLink: boolean;
   titleProductName: string;
   flairText?: string;
   websiteUrl?: string;

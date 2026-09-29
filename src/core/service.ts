@@ -16,6 +16,11 @@ export interface ReleaseServiceDependencies {
   fetchReleases(config: BotConfig): Promise<GitHubRelease[]>;
   state: ReleaseState;
   createPost(release: GitHubRelease, post: ReleasePost, config: BotConfig): Promise<string>;
+  findExistingPost?(
+    release: GitHubRelease,
+    post: ReleasePost,
+    config: BotConfig
+  ): Promise<string | undefined>;
   formatPost(release: GitHubRelease, config: BotConfig): ReleasePost;
   afterPost?(postId: string, config: BotConfig): Promise<void>;
 }
@@ -60,6 +65,13 @@ export async function checkReleases(
     }
 
     const post = dependencies.formatPost(release, config);
+    const existingPostId = await dependencies.findExistingPost?.(release, post, config);
+    if (existingPostId) {
+      await dependencies.state.markPosted(repository, release.id, existingPostId);
+      skipped += 1;
+      continue;
+    }
+
     const postId = await dependencies.createPost(release, post, config);
     await dependencies.state.markPosted(repository, release.id, postId);
     postIds.push(postId);

@@ -43,7 +43,9 @@ export function formatReleasePost(release: GitHubRelease, config: BotConfig): Re
   );
 
   const footerLinks = [
-    markdownLink('Full release on GitHub', release.html_url),
+    config.includeGitHubReleaseLink
+      ? markdownLink('Full release on GitHub', release.html_url)
+      : undefined,
     markdownLink('Download Loquela', config.downloadUrl),
     markdownLink('Loquela website', config.websiteUrl),
   ].filter((link): link is string => Boolean(link));
