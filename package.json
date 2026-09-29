@@ -1,0 +1,39 @@
+{
+  "name": "loquela-reddit-patch-notes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "devvit playtest",
+    "lint": "eslint src --max-warnings=0",
+    "login": "devvit login",
+    "test": "npm run test:types && npm run test:unit && npm run build",
+    "test:types": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "upload": "npm test && devvit upload",
+    "publish": "devvit publish"
+  },
+  "dependencies": {
+    "@devvit/redis": "0.14.6",
+    "@devvit/start": "0.14.6",
+    "@devvit/web": "0.14.6",
+    "@hono/node-server": "2.0.12",
+    "devvit": "0.14.6",
+    "hono": "4.13.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "eslint": "10.10.0",
+    "globals": "17.12.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.0",
+    "vite": "8.2.2",
+    "vitest": "4.1.10"
+  }
+}
+

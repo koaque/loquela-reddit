@@ -1,0 +1,98 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "loquela-patchnotes",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": ["api.github.com"]
+    },
+    "redis": true,
+    "reddit": {
+      "enable": true
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "check-github-releases": {
+        "endpoint": "/internal/scheduler/check-releases",
+        "cron": "*/10 * * * *"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Check Loquela releases now",
+        "description": "Check GitHub and post any new Loquela patch notes",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/check-releases"
+      }
+    ]
+  },
+  "settings": {
+    "global": {
+      "githubToken": {
+        "type": "string",
+        "label": "Optional GitHub token",
+        "defaultValue": "",
+        "isSecret": true
+      }
+    },
+    "subreddit": {
+      "githubOwner": {
+        "type": "string",
+        "label": "GitHub repository owner",
+        "defaultValue": ""
+      },
+      "githubRepository": {
+        "type": "string",
+        "label": "GitHub repository name",
+        "defaultValue": ""
+      },
+      "includePrereleases": {
+        "type": "boolean",
+        "label": "Post prereleases",
+        "defaultValue": false
+      },
+      "postCurrentOnFirstRun": {
+        "type": "boolean",
+        "label": "Post the current release on first run",
+        "defaultValue": false
+      },
+      "titleProductName": {
+        "type": "string",
+        "label": "Product name used in Reddit titles",
+        "defaultValue": "Loquela"
+      },
+      "flairText": {
+        "type": "string",
+        "label": "Post flair text (leave blank to disable)",
+        "defaultValue": "Patch Notes"
+      },
+      "websiteUrl": {
+        "type": "string",
+        "label": "Loquela website URL (leave blank to omit)",
+        "defaultValue": "https://www.getloquela.com"
+      },
+      "downloadUrl": {
+        "type": "string",
+        "label": "Loquela download URL (leave blank to omit)",
+        "defaultValue": "https://www.getloquela.com/download"
+      }
+    }
+  },
+  "dev": {
+    "subreddit": "Loquela"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  },
+  "sourceIgnores": ["coverage/", "src/**/*.test.ts"]
+}
+
