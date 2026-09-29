@@ -28,25 +28,43 @@ async function createRedditPost(
   return created.id;
 }
 
-async function applyFlair(postId: string, config: BotConfig): Promise<void> {
+async function ensureFlairTemplate(config: BotConfig): Promise<string | undefined> {
   if (!config.flairText) return;
   const subredditName = context.subredditName;
   if (!subredditName) return;
-  if (!postId.startsWith('t3_')) throw new Error(`Unexpected Reddit post ID: ${postId}`);
 
   const templates = await reddit.getPostFlairTemplates(subredditName);
-  const template = templates.find(
+  const existing = templates.find(
     (candidate) => candidate.text.trim().toLowerCase() === config.flairText?.toLowerCase()
   );
-  if (!template) {
-    console.warn(`No post flair named "${config.flairText}" exists in r/${subredditName}.`);
+  if (existing) return existing.id;
+
+  const created = await reddit.createPostFlairTemplate({
+    subredditName,
+    text: config.flairText,
+    allowableContent: 'text',
+    backgroundColor: '#2563EB',
+    textColor: 'light',
+    modOnly: true,
+    allowUserEdits: false,
+  });
+  console.log(`Created post flair "${config.flairText}" in r/${subredditName}.`);
+  return created.id;
+}
+
+async function applyFlair(postId: string, config: BotConfig): Promise<void> {
+  if (!postId.startsWith('t3_')) throw new Error(`Unexpected Reddit post ID: ${postId}`);
+  const subredditName = context.subredditName;
+  if (!subredditName) return;
+  const flairTemplateId = await ensureFlairTemplate(config);
+  if (!flairTemplateId) {
     return;
   }
 
   await reddit.setPostFlair({
     subredditName,
     postId: postId as `t3_${string}`,
-    flairTemplateId: template.id,
+    flairTemplateId,
   });
 }
 
@@ -69,6 +87,11 @@ export async function runReleaseCheck(): Promise<CheckResult> {
 
   try {
     const config = await loadConfig();
+    try {
+      await ensureFlairTemplate(config);
+    } catch (error) {
+      console.warn('Could not ensure the configured post flair exists.', error);
+    }
     return await checkReleases(config, {
       fetchReleases: fetchGitHubReleases,
       state: new RedisReleaseState(),
