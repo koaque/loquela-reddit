@@ -94,6 +94,8 @@ Version `0.0.4` is published as an unlisted Devvit app and installed in `r/Loque
 
 On October 15, 2026, investigation found that `koaque/loquela-android` still had no GitHub Releases, despite multiple updates being published on the website. The new workflow connects the already published website notes to the bot's GitHub release input. Version `0.0.4` includes expiring claims and recent-post reconciliation for retries; `Patch Notes` flair is already configured.
 
+The first workflow run passed all 16 tests and mirrored v1.2.1. The installed app then created [Loquela v1.2.1 - Patch Notes](https://www.reddit.com/r/Loquela/comments/1x74jkh/loquela_v121_patch_notes/) as `u/loquela-patchnotes`, with the full notes and public source links. Post flair was disabled at the subreddit level; it is now enabled so the app's already assigned `Patch Notes` flair is displayed.
+
 ## Duplicate prevention
 
 The app takes an installation-wide lock and atomically claims each GitHub release in Redis before creating its Reddit post. A successfully posted release is permanently associated with its Reddit post ID. Abandoned claims expire after fifteen minutes. Before retrying, the app checks the 100 newest subreddit posts for an exact title match to reconcile an earlier successful submission.
