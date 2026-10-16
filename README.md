@@ -1,6 +1,18 @@
 # Loquela Reddit Patch Notes
 
-A small Reddit Devvit app that checks GitHub Releases every ten minutes and posts new release notes to the subreddit where the app is installed. It is designed for `r/Loquela`, uses Devvit-hosted infrastructure, and does not require a separate server.
+A small Reddit Devvit app that checks GitHub Releases every ten minutes and posts new release notes to the subreddit where the app is installed. For `r/Loquela`, a free GitHub Actions workflow mirrors the patch notes already published on the Loquela website into this public repository's Releases. No separate server or manually authored GitHub Release is needed.
+
+## Published patch-note pipeline
+
+`getloquela.com/feed.xml` → scheduled GitHub Actions sync → this repository's Releases → Devvit → `r/Loquela`.
+
+The workflow runs every fifteen minutes and can also be run from GitHub Actions. It selects only published, versioned **Patch Notes** articles, copies their full article body as Reddit-compatible Markdown, and includes the public website article link. Research articles and future-dated entries are excluded. It does not read private Android source code or invent release copy.
+
+On its first run, the sync mirrors only the newest article and records the rest as a baseline to avoid posting the entire archive. Later runs mirror each unseen article. State is kept in `.github/patch-note-sync-state.json`; release tags provide recovery if a run creates a release but fails before saving its state. Do not remove that state file to retry a failed run. Failed Actions runs remain visible in GitHub's normal workflow history and notification system.
+
+The workflow uses GitHub's built-in, repository-scoped Actions token with Contents write permission. It needs no added secrets. This repository is public, so normal GitHub-hosted Actions usage is free. Allow about 25 minutes from website publication under normal scheduling, with additional delays possible from GitHub's scheduler.
+
+The Releases in this repository contain Loquela **Android** patch notes. Devvit app versions are managed separately in the Reddit developer portal.
 
 ## What it does
 
@@ -56,7 +68,7 @@ npx devvit settings set githubToken
 
 Use a fine-grained, read-only token with access only to the required repository.
 
-The production installation uses a non-expiring fine-grained token restricted to `koaque/loquela-android` with read-only Contents and Metadata access. The token is stored as an encrypted Devvit app secret and is never committed to this repository.
+The app still has the original fine-grained token restricted to `koaque/loquela-android` with read-only Contents and Metadata access. The production release source is now the public `koaque/loquela-reddit` repository; private Android repository access is not needed for the mirror. The token is stored as an encrypted Devvit app secret and is never committed to this repository.
 
 ## Deploy
 
@@ -72,17 +84,17 @@ Complete the app details in the Reddit developer portal, including the Privacy P
 Version `0.0.4` is published as an unlisted Devvit app and installed in `r/Loquela` with these settings:
 
 - GitHub owner: `koaque`
-- GitHub repository: `loquela-android`
+- GitHub repository: `loquela-reddit`
 - Prereleases: disabled
-- Post current release on first run: disabled
-- GitHub release link: disabled because the source repository is private
+- Post current release on first run: enabled (newest release only)
+- GitHub release link: enabled (the mirrored notes are public)
 - Title product name: `Loquela`
 - Flair text: `Patch Notes`
 - Check interval: every ten minutes
 
-The production checks completed successfully on September 29, 2026. No GitHub Releases existed at initialization, so no Reddit post was created. Version `0.0.2` created and verified the moderator-only `Patch Notes` flair; version `0.0.4` adds expiring claims and recent-post reconciliation for retry-safe delivery. The first future published release will be posted automatically.
+On October 15, 2026, investigation found that `koaque/loquela-android` still had no GitHub Releases, despite multiple updates being published on the website. The new workflow connects the already published website notes to the bot's GitHub release input. Version `0.0.4` includes expiring claims and recent-post reconciliation for retries; `Patch Notes` flair is already configured.
 
 ## Duplicate prevention
 
-The app takes an installation-wide lock and atomically claims each GitHub release in Redis before creating its Reddit post. A successfully posted release is permanently associated with its Reddit post ID. An extremely rare platform interruption after a claim but before confirmation deliberately leaves the release claimed; this favors preventing duplicates over an automatic retry with an ambiguous outcome.
+The app takes an installation-wide lock and atomically claims each GitHub release in Redis before creating its Reddit post. A successfully posted release is permanently associated with its Reddit post ID. Abandoned claims expire after fifteen minutes. Before retrying, the app checks the 100 newest subreddit posts for an exact title match to reconcile an earlier successful submission.
 
