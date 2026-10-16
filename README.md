@@ -14,6 +14,21 @@ The workflow uses GitHub's built-in, repository-scoped Actions token with Conten
 
 The Releases in this repository contain Loquela **Android** patch notes. Devvit app versions are managed separately in the Reddit developer portal.
 
+## Facebook Page publishing
+
+The Facebook publisher is implemented and tested but **not connected or enabled yet**. The target is the existing [Loquela Page](https://www.facebook.com/GetLoquela), Page ID `998141173385319`. A dedicated Meta app, `Loquela Page Updates`, is being prepared; creation is paused at Meta's **Manage everything on your Page** use-case selection pending approval. This is Meta's Pages API product label, not a request for every available permission.
+
+Once the app is created, request only the Page-discovery permission `pages_show_list`, the Page-read permission `pages_read_engagement` needed for duplicate reconciliation, and `pages_manage_posts` needed to publish. Connect only Loquela. This workflow does not need ad, inbox, comment-moderation, or general Page-settings permissions. Obtain a suitable Page token through Meta's supported token flow and verify its granted permissions and expiry before using it.
+
+Connect the workflow through this repository's GitHub Actions settings:
+
+- Encrypted Actions secret: `FACEBOOK_PAGE_TOKEN` (Page access token; never commit it or print it in logs).
+- Actions variable: `FACEBOOK_PAGE_ID` = `998141173385319`. Set this **last**, after configuring the secret, because it enables the Facebook job.
+
+The Facebook job runs separately from the Reddit release mirror on the same fifteen-minute schedule. It verifies the Page's ID and name, uses the owner's published article summary verbatim in a plain-text update, and links to the full notes. On first use it posts only the newest release and records the archive as a baseline. Later checks post unseen articles. Secrets are available only to the publishing step, after installation and tests.
+
+Public delivery receipts are saved in `.github/facebook-post-state.json` with article URLs, the Page ID, and Facebook post IDs. No tokens or private messages are stored there. If posting succeeds but saving a receipt fails, the next run checks the Page's recent published posts for the exact version and source URL before posting again. A token or permission error fails the job visibly in Actions instead of being treated as success. Token revocation, expiry, or changed Page access may require reconnecting.
+
 ## What it does
 
 - Uses GitHub Releases as the source of truth.

@@ -9,6 +9,7 @@ on:
     paths:
       - '.github/workflows/sync-patch-notes.yml'
       - 'scripts/sync-published-notes.mjs'
+      - 'scripts/publish-facebook.mjs'
       - 'package.json'
       - 'package-lock.json'
 
@@ -38,3 +39,31 @@ jobs:
           script: |
             const { syncPublishedNotes } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/sync-published-notes.mjs`);
             await syncPublishedNotes({ github, context, core });
+
+  facebook:
+    # This job remains disabled until the intended Page and token are connected.
+    if: ${{ vars.FACEBOOK_PAGE_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - uses: actions/github-script@v9.0.0
+        env:
+          FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+        with:
+          script: |
+            const { syncFacebookPosts } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
+            await syncFacebookPosts({
+              github, context, core,
+              pageId: process.env.FACEBOOK_PAGE_ID,
+              pageToken: process.env.FACEBOOK_PAGE_TOKEN,
+            });

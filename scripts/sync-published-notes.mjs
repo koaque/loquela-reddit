@@ -76,7 +76,7 @@ export function planSync(entries, state) {
   return { pending: entries.filter((entry) => !seen.has(entry.id)), seen: [...seen] };
 }
 
-async function fetchText(url, fetchImpl) {
+export async function fetchText(url, fetchImpl) {
   const response = await fetchImpl(url, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`Published content request failed with HTTP ${response.status}: ${url}`);
   // Bound even chunked responses before parsing HTML or XML.
