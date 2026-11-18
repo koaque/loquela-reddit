@@ -1,0 +1,76 @@
+name: Facebook patch notes - manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Preview text, verify connection (GET only), or explicitly publish
+        type: choice
+        options: [preview, verify, publish]
+        default: preview
+      version:
+        description: Exact stable Android version, e.g. v1.6.5; required for publish
+        type: string
+        default: ''
+      approval_json:
+        description: Non-secret exact approval and live-Play evidence JSON; required for publish
+        type: string
+        default: '{}'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-published-patch-notes
+  cancel-in-progress: false
+
+jobs:
+  facebook:
+    # A non-main dispatch must never have the publisher token.
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - name: Preview without Facebook credentials
+        if: inputs.mode == 'preview'
+        uses: actions/github-script@v9.0.0
+        env:
+          FACEBOOK_VERSION: ${{ inputs.version }}
+        with:
+          script: |
+            const { runFacebook } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
+            await runFacebook({ github, context, core, mode: 'preview', version: process.env.FACEBOOK_VERSION });
+      - name: Verify or explicitly publish
+        if: inputs.mode == 'verify' || inputs.mode == 'publish'
+        uses: actions/github-script@v9.0.0
+        env:
+          FACEBOOK_MODE: ${{ inputs.mode }}
+          FACEBOOK_VERSION: ${{ inputs.version }}
+          FACEBOOK_APPROVAL_JSON: ${{ inputs.approval_json }}
+          FACEBOOK_PUBLISH_ENABLED: ${{ vars.FACEBOOK_PUBLISH_ENABLED }}
+          FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+        with:
+          script: |
+            const { runFacebook } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
+            let approval;
+            try { approval = JSON.parse(process.env.FACEBOOK_APPROVAL_JSON); }
+            catch { throw new Error('Approval JSON is invalid.'); }
+            const result = await runFacebook({
+              github, context, core, mode: process.env.FACEBOOK_MODE,
+              version: process.env.FACEBOOK_VERSION,
+              pageId: process.env.FACEBOOK_PAGE_ID, pageToken: process.env.FACEBOOK_PAGE_TOKEN,
+              publishingEnabled: process.env.FACEBOOK_PUBLISH_ENABLED === 'true', approval,
+            });
+            if (result.mode === 'verify') core.info(JSON.stringify(result));

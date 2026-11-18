@@ -40,9 +40,10 @@ jobs:
             const { syncPublishedNotes } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/sync-published-notes.mjs`);
             await syncPublishedNotes({ github, context, core });
 
-  facebook:
-    # This job remains disabled until the intended Page and token are connected.
-    if: ${{ vars.FACEBOOK_PAGE_ID != '' }}
+  facebook-preview:
+    # Scheduled and push-triggered runs can only prepare text. No Page secret.
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -56,14 +57,7 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
       - uses: actions/github-script@v9.0.0
-        env:
-          FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID }}
-          FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
         with:
           script: |
-            const { syncFacebookPosts } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
-            await syncFacebookPosts({
-              github, context, core,
-              pageId: process.env.FACEBOOK_PAGE_ID,
-              pageToken: process.env.FACEBOOK_PAGE_TOKEN,
-            });
+            const { runFacebook } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
+            await runFacebook({ github, context, core, mode: 'preview' });

@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "pageId": "998141173385319",
+  "baselineVersion": "v1.6.4",
+  "baselineReason": "Owner confirmed Facebook already contains the 1.6.4 announcement. Versions through 1.6.4 are excluded; older announcements are not asserted delivered.",
+  "baselinePostPermalink": "https://www.facebook.com/GetLoquela/posts/pfbid0jEFi1kuEcR3AtWQ7XCcuX5bXYBWWTiJBUnxg4sjWwSNtUESsz2JuSccWjw2YfXJVl",
+  "attempts": {}
+}
