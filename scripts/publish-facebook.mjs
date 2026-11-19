@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
 import { parse } from 'node-html-parser';
 import { articleToMarkdown, FEED_URL, fetchText, parseFeed } from './sync-published-notes.mjs';
+import { readLivePlayRelease } from './google-play-live.mjs';
 
 export const PAGE_ID = '998141173385319';
 export const STATE_PATH = '.github/facebook-post-state.json';
 export const BASELINE = 'v1.6.4';
 const GRAPH_VERSION = 'v27.0';
+export const AUTOMATIC_AUTHORIZATION = 'owner-2026-11-19-automatic-facebook-after-public-play-confirmation';
 
 export function afterBaseline(version) {
   if (!/^v\d+\.\d+\.\d+$/.test(version ?? '')) throw new Error('An exact stable Android version is required.');
@@ -107,7 +109,13 @@ function matches(post, entry) {
 
 export async function runFacebook({ github, context, core, mode = 'preview', version = '', pageId, pageToken,
   publishingEnabled = false, approval, fetchImpl = fetch, now = Date.now() }) {
-  if (!['preview', 'verify', 'publish'].includes(mode)) throw new Error('Unknown operation.');
+  if (!['preview', 'verify', 'publish', 'auto', 'check'].includes(mode)) throw new Error('Unknown operation.');
+  const automatic = mode === 'auto' || mode === 'check';
+  if (mode === 'auto' && (context.ref !== 'refs/heads/main' ||
+      context.repo.owner !== 'koaque' || context.repo.repo !== 'loquela-reddit' ||
+      !['schedule', 'workflow_dispatch'].includes(context.eventName))) {
+    throw new Error('Automatic publication requires the main scheduled/manual repository workflow.');
+  }
   const repo = { owner: context.repo.owner, repo: context.repo.repo };
   let stored;
   try { stored = (await github.rest.repos.getContent({ ...repo, path: STATE_PATH, ref: 'main' })).data; }
@@ -121,6 +129,10 @@ export async function runFacebook({ github, context, core, mode = 'preview', ver
     sha = saved.data.content.sha;
   };
   const report = async text => { await core.summary.addHeading('Loquela Facebook patch notes').addRaw(text).write(); };
+  if (mode === 'auto' && publishingEnabled !== true) {
+    await report('Facebook publishing is disabled. No post created.');
+    return { mode, status: 'disabled' };
+  }
   if (mode === 'verify') {
     const facebook = createFacebookClient({ pageId, pageToken, fetchImpl });
     const page = await facebook.verifyPage(), posts = await facebook.recentPosts();
@@ -130,20 +142,30 @@ export async function runFacebook({ github, context, core, mode = 'preview', ver
   }
   if (version && !afterBaseline(version)) throw new Error('v1.6.4 and earlier releases are permanently excluded.');
   const entries = parseFeed(await fetchText(FEED_URL, fetchImpl), now).filter(e => /^v\d+\.\d+\.\d+$/.test(e.version) && afterBaseline(e.version));
-  const entry = version ? entries.find(e => e.version === version) : entries.at(-1);
+  const livePlay = automatic ? await readLivePlayRelease({ fetchImpl, now }) : undefined;
+  if (automatic && version && version !== livePlay.version) throw new Error('Requested version is not the exact public Play version.');
+  const entry = automatic ? entries.find(e => e.version === livePlay.version)
+    : version ? entries.find(e => e.version === version) : entries.at(-1);
   if (!entry) {
-    if (version) throw new Error('Requested version is absent from the published feed.');
-    await report('No Android release newer than v1.6.4 is available for preview. No post created.');
-    return { mode: 'preview', status: 'no-candidate' };
+    if (version && !automatic) throw new Error('Requested version is absent from the published feed.');
+    await report(automatic
+      ? `Google Play currently lists ${livePlay.version}. No matching eligible patch notes newer than v1.6.4. No post created.`
+      : 'No Android release newer than v1.6.4 is available for preview. No post created.');
+    return { mode, status: 'no-candidate', ...(livePlay ? { livePlay } : {}) };
   }
   const post = formatFacebookPost(await fetchText(entry.id, fetchImpl), entry), hash = payloadHash(post);
-  if (mode === 'preview') {
+  if (mode === 'preview' || mode === 'check') {
     const escaped = post.message.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-    await report(`PREVIEW ONLY. Play availability is unverified.\n\n<pre>${escaped}</pre>\n\nLink: ${post.link}\n\nPayload SHA-256: \`${hash}\`\n\nTransaction: ${state.attempts[entry.version]?.status ?? 'none'}. No public post created.`);
-    return { mode, version: entry.version, post, hash };
+    await report(`${mode === 'check' ? `READ-ONLY CHECK. Google Play lists ${livePlay.version}.` : 'PREVIEW ONLY. Play availability is unverified.'}\n\n<pre>${escaped}</pre>\n\nLink: ${post.link}\n\nPayload SHA-256: \`${hash}\`\n\nTransaction: ${state.attempts[entry.version]?.status ?? 'none'}. No public post created.`);
+    return { mode, version: entry.version, post, hash, ...(livePlay ? { livePlay } : {}) };
   }
-  if (context.eventName !== 'workflow_dispatch' || !version) throw new Error('Publish requires a manual workflow and exact version.');
-  validateApproval({ approval, hash, publishingEnabled, now });
+  if (mode === 'publish') {
+    if (context.eventName !== 'workflow_dispatch' || !version) throw new Error('Publish requires a manual workflow and exact version.');
+    validateApproval({ approval, hash, publishingEnabled, now });
+  } else {
+    approval = { kind: 'standing-automatic-authority', reference: AUTOMATIC_AUTHORIZATION,
+      payloadSha256: hash, livePlay };
+  }
   const facebook = createFacebookClient({ pageId, pageToken, fetchImpl });
   await facebook.verifyPage();
   const prior = state.attempts[entry.version];

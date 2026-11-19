@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Preview text, verify connection (GET only), or explicitly publish
+        description: Preview, check live Play (read only), verify Page, auto-publish, or exact manual publish
         type: choice
-        options: [preview, verify, publish]
+        options: [preview, check, verify, auto, publish]
         default: preview
       version:
         description: Exact stable Android version, e.g. v1.6.5; required for publish
@@ -42,17 +42,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:unit
-      - name: Preview without Facebook credentials
-        if: inputs.mode == 'preview'
+      - name: Preview or check live Play without Facebook credentials
+        if: inputs.mode == 'preview' || inputs.mode == 'check'
         uses: actions/github-script@v9.0.0
         env:
+          FACEBOOK_MODE: ${{ inputs.mode }}
           FACEBOOK_VERSION: ${{ inputs.version }}
         with:
           script: |
             const { runFacebook } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
-            await runFacebook({ github, context, core, mode: 'preview', version: process.env.FACEBOOK_VERSION });
+            const result = await runFacebook({ github, context, core, mode: process.env.FACEBOOK_MODE, version: process.env.FACEBOOK_VERSION });
+            core.info(JSON.stringify(result));
       - name: Verify or explicitly publish
-        if: inputs.mode == 'verify' || inputs.mode == 'publish'
+        if: inputs.mode == 'verify' || inputs.mode == 'publish' || inputs.mode == 'auto'
         uses: actions/github-script@v9.0.0
         env:
           FACEBOOK_MODE: ${{ inputs.mode }}
@@ -73,4 +75,4 @@ jobs:
               pageId: process.env.FACEBOOK_PAGE_ID, pageToken: process.env.FACEBOOK_PAGE_TOKEN,
               publishingEnabled: process.env.FACEBOOK_PUBLISH_ENABLED === 'true', approval,
             });
-            if (result.mode === 'verify') core.info(JSON.stringify(result));
+            core.info(JSON.stringify(result));

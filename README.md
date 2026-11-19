@@ -16,13 +16,19 @@ The Releases in this repository contain Loquela **Android** patch notes. Devvit 
 
 ## Facebook Page publishing
 
-Facebook uses the same published Android article feed as the Reddit mirror. The existing Reddit workflow is unchanged; its Facebook job now **previews only**, without a Page token. Website publication does not prove that Google Play has approved or released an update.
+Facebook uses the same published Android article feed as the Reddit mirror. On November 19, 2026, the owner authorized **automatic Facebook patch-note posts after the exact release is confirmed live on Google Play, without per-post approval**. This replaces the earlier manual-only Facebook gate. It does not change Reddit, X, advertising or other outreach authority.
 
-The separate **Facebook patch notes - manual** Actions workflow has three operations:
+The existing sync workflow checks every 15 minutes (GitHub scheduling can be delayed). After the Reddit mirror job, Facebook reads the public, logged-out [US Google Play listing](https://play.google.com/store/apps/details?id=com.praxisdynamics.loquela&hl=en_US&gl=US). It verifies the package identity, availability, exact stable version and release notes, then selects only the matching published website article. A newer website article alone never triggers a post. There is no historical catch-up; only the currently observed live version can be posted.
+
+The public Play page has an undocumented data format. Missing or ambiguous identity/version, changed markup, consent pages and network failures **hold publication** and surface in Actions. The evidence confirms availability on that public listing, not a completed rollout to every country or device. No Play account, API credential or paid service is required. Every recorded attempt includes the Play version, source, checked time and listing SHA-256.
+
+The separate **Facebook patch notes - manual** Actions workflow also supports:
 
 - **preview**: select a version or leave it blank for the newest candidate; prepare the exact plain-text summary, source link and SHA-256. No Graph calls or publication.
 - **verify**: GET-only checks of the Loquela Page identity and published posts. This does not prove the token has working publishing permission and creates no test post.
-- **publish**: one explicitly approved version, only after live Play confirmation, current owner/review release and exact payload approval. There is no scheduled or push-triggered publishing route.
+- **check**: read the real public Play listing and show the exact matching candidate, without Facebook credentials, state writes or publication. Code-change pushes use this mode.
+- **auto**: run the same live-Play-gated automatic publisher immediately from `main`; no per-post approval JSON is needed. Scheduled and manually dispatched sync runs use this mode.
+- **publish**: retained legacy path for one exact, separately approved manual release. Its original approval JSON requirements remain; normal automatic operation does not use this path.
 
 ### Connect once
 
@@ -32,11 +38,11 @@ In this public repository's Actions settings, add:
 
 - Encrypted secret `FACEBOOK_PAGE_TOKEN`: the Page access token. Never put the token, App Secret, login credentials or raw token responses in source, logs, workflow inputs or chat.
 - Variable `FACEBOOK_PAGE_ID`: `998141173385319`.
-- Variable `FACEBOOK_PUBLISH_ENABLED`: `false` until a real, explicitly authorized publication is ready.
+- Variable `FACEBOOK_PUBLISH_ENABLED`: `true` for the owner's authorized automatic operation. Set `false` to stop all new Facebook publication.
 
 Connecting the ID and token does **not** enable public posting. Run the manual workflow in **verify** mode first. A token can expire or be revoked; reconnect when required. Do not promise permanent credentials. The publishing process needs only the Page token, not the App Secret. GitHub's built-in token stores non-secret delivery receipts; no additional GitHub PAT is needed.
 
-### Approve a real release
+### Optional legacy manual release
 
 1. Confirm the exact Android release is live on the public Google Play listing (not merely uploaded, committed, in review, present on the website, or mirrored to GitHub). Record the version, observer and checked time in the marketing review packet.
 2. Run **preview** for that exact version. Review the complete message and source link. Obtain Jack's exact authorization plus the current applicable review release. No draft or placeholder reference is approval.
@@ -53,9 +59,9 @@ Connecting the ID and token does **not** enable public posting. Run the manual w
 }
 ```
 
-4. Enable `FACEBOOK_PUBLISH_ENABLED` only within that specific authority, then manually dispatch **publish** on `main` with the exact version. Play verification must be no older than 24 hours. Any material change requires fresh review and a matching hash. Turn the flag off again after the authorized operation.
+4. With `FACEBOOK_PUBLISH_ENABLED=true`, manually dispatch **publish** on `main` with the exact version. Play verification must be no older than 24 hours. Any material change requires fresh review and a matching hash. Setting the flag false also disables the authorized automatic publisher.
 
-The checkboxes/JSON are records of a real human verification and approval, not automatic proof of either. Unattended public posting remains unauthorized and is not implemented.
+This legacy JSON records human verification; it is not used as proof by automatic mode. Automatic mode fetches the public Play evidence itself and records the standing November 19 authorization.
 
 ### Baseline and recovery
 
@@ -63,11 +69,11 @@ The checkboxes/JSON are records of a real human verification and approval, not a
 
 Before publishing, the job checks Page history for the version and source link, including attached links and pagination. It writes a durable `pending` attempt before exactly one POST and reads the resulting post back before reporting `verified`. A failed/ambiguous response or interrupted run stays held. A later run may reconcile an existing matching post, but will never automatically retry an unresolved attempt. This cannot guarantee exactly-once delivery after external edits or deletions; unresolved cases require owner review.
 
-All public operations use the existing shared Actions concurrency group. Keep one operator; follow the marketing workspace's review and operational controls. Setup approval alone does not approve any public post. The local connection status is recorded in the marketing workspace, not inferred from this README.
+All public operations use the existing shared Actions concurrency group. The Facebook job waits for the Reddit mirror before writing its state. The owner's November 19 automatic-release instruction authorizes this specific scheduled publisher; earlier per-post owner/reviewer approvals do not apply to it. Uncertain outcomes and possible manual announcements still require reconciliation. Connection status is recorded in the marketing workspace, not inferred from this README.
 
 ### Validation
 
-Run `npm run test:unit` with Node 24. Tests cover historical exclusion, token-free preview, manual-only dispatch, approval hashes, live-release evidence, Page identity, pagination, durable intent, uncertain outcomes, duplicate reconciliation and readback. Tests use mocks and do not contact Facebook. Verify against the live API using GET only; the first live write must be a separately authorized real release.
+Run `npm run test:unit` with Node 24. Tests cover historical exclusion, token-free preview/check, automatic main-branch/event restrictions, exact public Play version matching, malformed/unavailable Play responses, legacy approvals, Page identity, pagination, durable intent, uncertain outcomes, duplicate reconciliation and readback. Tests use mocks and do not contact Facebook. Use **check** for real Play validation and **verify** for GET-only Page access. Never publish test posts.
 
 ## What it does
 

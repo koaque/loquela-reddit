@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { afterBaseline, createFacebookClient, formatFacebookPost, PAGE_ID, payloadHash, runFacebook, validateApproval } from './publish-facebook.mjs';
+import { PLAY_URL } from './google-play-live.mjs';
+import { playFixture } from './test-fixtures/google-play.mjs';
 
 const now = Date.parse('2026-11-17T20:00:00Z');
 const version = 'v1.6.5';
@@ -12,7 +14,8 @@ const approval = { payloadSha256: payloadHash(post), liveOnPlay: true,
   liveEvidenceUrl: 'https://play.google.com/store/apps/details?id=com.praxisdynamics.loquela',
   liveCheckedAt: '2026-11-17T19:00:00Z', ownerApprovalReference: 'test-owner-approval', reviewReleaseReference: 'test-review-release' };
 
-function harness({ stateMissing = false, attempts = {}, existing = [], saveFails = false, timeout = false, wrongPage = false, readbackMismatch = false, providerError = false } = {}) {
+function harness({ stateMissing = false, attempts = {}, existing = [], saveFails = false, timeout = false, wrongPage = false, readbackMismatch = false, providerError = false,
+  liveVersion = '1.6.5', playUnavailable = false, feed = rss } = {}) {
   const requests = [], events = [], saved = [];
   const state = { version: 2, pageId: PAGE_ID, baselineVersion: 'v1.6.4', attempts };
   const repos = {
@@ -29,8 +32,11 @@ function harness({ stateMissing = false, attempts = {}, existing = [], saveFails
   };
   const fetchImpl = vi.fn(async (requestUrl, options = {}) => {
     requests.push({ url: requestUrl, options });
-    if (requestUrl.endsWith('/feed.xml')) return new Response(rss);
+    if (requestUrl.endsWith('/feed.xml')) return new Response(feed);
     if (requestUrl === url) return new Response(article);
+    if (requestUrl === PLAY_URL) return new Response(playUnavailable ? 'unavailable' : playFixture({ version: liveVersion }), {
+      status: playUnavailable ? 503 : 200, headers: { 'content-type': 'text/html' },
+    });
     if (providerError) return Response.json({ error: { code: 190, message: token } }, { status: 400 });
     if (options.method === 'POST') {
       events.push('POST');
@@ -162,5 +168,71 @@ describe('Facebook release controls', () => {
     expect(fetchImpl.mock.calls[1][0]).toContain('after=cursor2');
     const broken = createFacebookClient({ pageId: PAGE_ID, pageToken: token, fetchImpl: async () => Response.json({ data: [], paging: { next: 'anything' } }) });
     await expect(broken.recentPosts()).rejects.toThrow('Incomplete');
+  });
+});
+
+describe('automatic Facebook publishing', () => {
+  const automatic = h => ({ ...h.args, mode: 'auto', version: '', approval: undefined,
+    context: { ...h.args.context, ref: 'refs/heads/main', eventName: 'schedule' } });
+
+  it('publishes the exact live release once without per-post approval and records Play evidence', async () => {
+    const h = harness();
+    expect(await runFacebook(automatic(h))).toMatchObject({ mode: 'auto', status: 'verified' });
+    expect(h.events).toEqual(['pending', 'POST', 'verified']);
+    expect(h.saved.at(-1).attempts[version].approval).toMatchObject({ kind: 'standing-automatic-authority',
+      livePlay: { version, source: PLAY_URL }, payloadSha256: payloadHash(post) });
+    h.repos.getContent.mockResolvedValue({ data: { sha: 'saved', content: Buffer.from(JSON.stringify(h.saved.at(-1))).toString('base64') } });
+    expect(await runFacebook(automatic(h))).toMatchObject({ status: 'already-recorded' });
+    expect(h.events.filter(e => e === 'POST')).toHaveLength(1);
+  });
+  it.each(['1.6.4', '1.6.3', '1.6.6'])('does not publish when the exact live version %s has no eligible article', async liveVersion => {
+    const h = harness({ liveVersion });
+    expect(await runFacebook(automatic(h))).toMatchObject({ status: 'no-candidate' });
+    expect(h.events).toEqual([]);
+    expect(h.requests.some(r => r.url.includes('graph.facebook.com'))).toBe(false);
+  });
+  it('selects the live version even when the website contains a newer unreleased article', async () => {
+    const newer = rss.match(/<item>[\s\S]*<\/item>/)[0].replaceAll('1.6.5', '1.6.6').replaceAll('1-6-5', '1-6-6');
+    const h = harness({ feed: rss.replace('</channel>', newer + '</channel>') });
+    expect(await runFacebook(automatic(h))).toMatchObject({ status: 'verified' });
+    expect(Object.keys(h.saved.at(-1).attempts)).toEqual(['v1.6.5']);
+  });
+  it('holds without any Graph calls when Play is unavailable', async () => {
+    const h = harness({ playUnavailable: true });
+    await expect(runFacebook(automatic(h))).rejects.toThrow('unavailable');
+    expect(h.events).toEqual([]);
+    expect(h.requests.some(r => r.url.includes('graph.facebook.com'))).toBe(false);
+  });
+  it('keeps the publishing switch as a kill switch', async () => {
+    const h = harness();
+    expect(await runFacebook({ ...automatic(h), publishingEnabled: false })).toMatchObject({ status: 'disabled' });
+    expect(h.fetchImpl).not.toHaveBeenCalled();
+  });
+  it('requires the intended main repository and a scheduled or manually dispatched event', async () => {
+    for (const change of [{ ref: 'refs/heads/other' }, { eventName: 'push' }, { eventName: 'pull_request' },
+      { repo: { owner: 'someone', repo: 'fork' } }]) {
+      const h = harness(), args = automatic(h);
+      await expect(runFacebook({ ...args, context: { ...args.context, ...change } })).rejects.toThrow('main scheduled/manual');
+      expect(h.fetchImpl).not.toHaveBeenCalled();
+    }
+  });
+  it('checks real Play evidence without using the Page token, writing state or publishing', async () => {
+    const h = harness();
+    expect(await runFacebook({ ...automatic(h), mode: 'check', pageToken: undefined })).toMatchObject({ mode: 'check', version });
+    expect(h.events).toEqual([]);
+    expect(h.requests.some(r => r.url.includes('graph.facebook.com'))).toBe(false);
+  });
+  it('preserves manual-announcement and uncertain-attempt holds in automatic mode', async () => {
+    for (const options of [{ existing: [{ id: `${PAGE_ID}_456`, message: 'Version 1.6.5 is here!' }] },
+      { attempts: { [version]: { status: 'uncertain' } } }]) {
+      const h = harness(options);
+      await expect(runFacebook(automatic(h))).rejects.toThrow(/manual announcement|Unresolved prior/);
+      expect(h.events).toEqual([]);
+    }
+  });
+  it('does not retry an automatic POST with an uncertain result', async () => {
+    const h = harness({ timeout: true });
+    await expect(runFacebook(automatic(h))).rejects.toThrow('no automatic publish retry');
+    expect(h.events).toEqual(['pending', 'POST', 'uncertain']);
   });
 });

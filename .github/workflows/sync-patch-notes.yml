@@ -10,6 +10,10 @@ on:
       - '.github/workflows/sync-patch-notes.yml'
       - 'scripts/sync-published-notes.mjs'
       - 'scripts/publish-facebook.mjs'
+      - 'scripts/google-play-live.mjs'
+      - 'scripts/google-play-live.test.mjs'
+      - 'scripts/publish-facebook.test.mjs'
+      - 'scripts/test-fixtures/**'
       - 'package.json'
       - 'package-lock.json'
 
@@ -40,10 +44,13 @@ jobs:
             const { syncPublishedNotes } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/sync-published-notes.mjs`);
             await syncPublishedNotes({ github, context, core });
 
-  facebook-preview:
-    # Scheduled and push-triggered runs can only prepare text. No Page secret.
+  facebook:
+    # Owner authorized automatic posts on November 19, after public Play confirmation.
+    # Serialize repository-state writes after the existing Reddit mirror job.
+    needs: sync
+    if: github.ref == 'refs/heads/main'
     permissions:
-      contents: read
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -56,8 +63,27 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:unit
-      - uses: actions/github-script@v9.0.0
+      - name: Read-only live-Play check on code changes
+        if: github.event_name == 'push'
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const { runFacebook } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
-            await runFacebook({ github, context, core, mode: 'preview' });
+            const result = await runFacebook({ github, context, core, mode: 'check' });
+            core.info(JSON.stringify(result));
+      - name: Publish the current live Play release once
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v9.0.0
+        env:
+          FACEBOOK_PUBLISH_ENABLED: ${{ vars.FACEBOOK_PUBLISH_ENABLED }}
+          FACEBOOK_PAGE_ID: ${{ vars.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_TOKEN: ${{ secrets.FACEBOOK_PAGE_TOKEN }}
+        with:
+          script: |
+            const { runFacebook } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/publish-facebook.mjs`);
+            const result = await runFacebook({
+              github, context, core, mode: 'auto',
+              publishingEnabled: process.env.FACEBOOK_PUBLISH_ENABLED === 'true',
+              pageId: process.env.FACEBOOK_PAGE_ID, pageToken: process.env.FACEBOOK_PAGE_TOKEN,
+            });
+            core.info(JSON.stringify(result));
