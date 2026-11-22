@@ -4,5 +4,27 @@
   "baselineVersion": "v1.6.4",
   "baselineReason": "Owner confirmed Facebook already contains the 1.6.4 announcement. Versions through 1.6.4 are excluded; older announcements are not asserted delivered.",
   "baselinePostPermalink": "https://www.facebook.com/GetLoquela/posts/pfbid0jEFi1kuEcR3AtWQ7XCcuX5bXYBWWTiJBUnxg4sjWwSNtUESsz2JuSccWjw2YfXJVl",
-  "attempts": {}
+  "attempts": {
+    "v1.7.0": {
+      "status": "pending",
+      "articleUrl": "https://www.getloquela.com/blog/android-v1-7-0-patch-notes",
+      "payloadSha256": "53e9e6d13f88c86e4a818cd1f355153a46612475163f3d9f1d2e0f3aee6bb8fa",
+      "attemptedAt": "2026-11-22T17:45:44.127Z",
+      "runId": "45050762431",
+      "actor": "koaque",
+      "approval": {
+        "kind": "standing-automatic-authority",
+        "reference": "owner-2026-11-19-automatic-facebook-after-public-play-confirmation",
+        "payloadSha256": "53e9e6d13f88c86e4a818cd1f355153a46612475163f3d9f1d2e0f3aee6bb8fa",
+        "livePlay": {
+          "packageId": "com.praxisdynamics.loquela",
+          "version": "v1.7.0",
+          "releaseNotes": "- Our own prediction model reads your whole message (English).\n- Learns your recent typing, encrypted on your phone. Reset or turn off in Advanced.\n- Learned words can move to a new phone with Android backup.\n- Undo after deleting several words or a cut.\n- Voice time by month on Your stats.\n- Option to keep the emoji key in email and web fields.",
+          "source": "https://play.google.com/store/apps/details?id=com.praxisdynamics.loquela&hl=en_US&gl=US",
+          "checkedAt": "2026-11-22T17:45:44.127Z",
+          "listingSha256": "e7fc4a07c9765a97b131fff5ec211b4befdb1b639b49c48d0000ef9721ba1d5b"
+        }
+      }
+    }
+  }
 }
