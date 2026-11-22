@@ -6,7 +6,7 @@
   "baselinePostPermalink": "https://www.facebook.com/GetLoquela/posts/pfbid0jEFi1kuEcR3AtWQ7XCcuX5bXYBWWTiJBUnxg4sjWwSNtUESsz2JuSccWjw2YfXJVl",
   "attempts": {
     "v1.7.0": {
-      "status": "pending",
+      "status": "uncertain",
       "articleUrl": "https://www.getloquela.com/blog/android-v1-7-0-patch-notes",
       "payloadSha256": "53e9e6d13f88c86e4a818cd1f355153a46612475163f3d9f1d2e0f3aee6bb8fa",
       "attemptedAt": "2026-11-22T17:45:44.127Z",
@@ -24,7 +24,8 @@
           "checkedAt": "2026-11-22T17:45:44.127Z",
           "listingSha256": "e7fc4a07c9765a97b131fff5ec211b4befdb1b639b49c48d0000ef9721ba1d5b"
         }
-      }
+      },
+      "postId": "998141173385319_122127024831080850"
     }
   }
 }
