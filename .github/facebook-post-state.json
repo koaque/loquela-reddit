@@ -30,7 +30,7 @@
       "reconciledBy": "owner confirmed the post is on the Page (2026-11-23); the readback after publishing did not match"
     },
     "v1.7.1": {
-      "status": "pending",
+      "status": "uncertain",
       "articleUrl": "https://www.getloquela.com/blog/android-v1-7-1-patch-notes",
       "payloadSha256": "20d8f8295680f9533eb36342a8a862933fe88e763ba51789707753ecfe123723",
       "attemptedAt": "2026-11-24T21:00:22.007Z",
@@ -48,7 +48,8 @@
           "checkedAt": "2026-11-24T21:00:22.007Z",
           "listingSha256": "9c8c9113d273f86f1266ac0fc3505d5517cf5b979bd10124bafcfe8f933842d7"
         }
-      }
+      },
+      "postId": "998141173385319_122127176013080850"
     }
   }
 }
