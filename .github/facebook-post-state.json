@@ -28,6 +28,27 @@
       "postId": "998141173385319_122127024831080850",
       "reconciledAt": "2026-11-23T23:00:05.880Z",
       "reconciledBy": "owner confirmed the post is on the Page (2026-11-23); the readback after publishing did not match"
+    },
+    "v1.7.1": {
+      "status": "pending",
+      "articleUrl": "https://www.getloquela.com/blog/android-v1-7-1-patch-notes",
+      "payloadSha256": "20d8f8295680f9533eb36342a8a862933fe88e763ba51789707753ecfe123723",
+      "attemptedAt": "2026-11-24T21:00:22.007Z",
+      "runId": "45485919435",
+      "actor": "koaque",
+      "approval": {
+        "kind": "standing-automatic-authority",
+        "reference": "owner-2026-11-19-automatic-facebook-after-public-play-confirmation",
+        "payloadSha256": "20d8f8295680f9533eb36342a8a862933fe88e763ba51789707753ecfe123723",
+        "livePlay": {
+          "packageId": "com.praxisdynamics.loquela",
+          "version": "v1.7.1",
+          "releaseNotes": "- Expanded and updated model selection for latest public models: 10 new voice models.\n- Speech translation with Canary (Full).\n- Light live models in 7 languages.\n- Filters on the Models page.\n- Autocorrect stays on where apps turn it off.\n- See what Full adds before signing in, and redeem codes in the app.",
+          "source": "https://play.google.com/store/apps/details?id=com.praxisdynamics.loquela&hl=en_US&gl=US",
+          "checkedAt": "2026-11-24T21:00:22.007Z",
+          "listingSha256": "9c8c9113d273f86f1266ac0fc3505d5517cf5b979bd10124bafcfe8f933842d7"
+        }
+      }
     }
   }
 }
